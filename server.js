@@ -4,7 +4,9 @@ var http = require('http'),
     //fs = require('fs'),
     crypto = require('crypto'),
     express = require('express'),
-    events = require('events');
+    events = require('events'),
+    moment = require('moment');
+
 
 
 // TODO
@@ -99,6 +101,9 @@ var ReqCatcherServer = (function() {
         var that = this;
         //console.log('ReqCatcherServer: on_raw_request: '+req.url);
 
+        // Store when the request was started
+        req.started_at = moment.utc().valueOf();
+
         // Read incoming data
         var data = '';
         req.on('data', function(chunk) {
@@ -125,12 +130,15 @@ var ReqCatcherServer = (function() {
             return;
         }
 
+        console.log(req);
+
         this.emit('request', {
             id: req_id,
             method: req.method,
             url: req.url,
             headers: req.headers,
             data: data,
+            started_at: req.started_at,
         }, resp);
     };
 

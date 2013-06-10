@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>httpi.pe</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <style>
+        body {
+            padding-top: 60px;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="navbar navbar-inverse navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container">
+                    <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="brand" href="#">Project name</a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav">
+                            <li class="active"><a href="#">Home</a></li>
+                            <li><a href="#about">About</a></li>
+                            <li><a href="#contact">Contact</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <h1>httpi.pe</h1>
+        </div>
+
+        <div class="container" id="requests-container">
+        </div>
+
+        <!-- Templates -->
+        <script type="text/template" id="request-template">
+        <div id="<%= req.id %>" class="request row">
+            <div class="span12">
+                <!-- <div>
+                    <h3 style="float:left;">
+                        <i class="icon-zoom-in" style="vertical-align:middle;"></i>
+                        <%= req.method %> <%= req.url %>
+                    </h2>
+                    <span style="float:right;"><%= moment.utc(req.started_at).format() %></span>
+                </div>
+                <table class="req-headers table">
+                    <thead><tr>
+                        <th>Name</th>
+                        <th>Value
+                    </tr></thead>
+                    <tbody>
+                    <% _.each(req.headers, function(v, k) { %>
+                        <tr>
+                            <td><%= k %></td>
+                            <td><%= v %></td>
+                        </tr>
+                    <% }) %>
+                    </tbody>
+                </table> -->
+
+                <div class="accordion" id="accordion-<%= req.id %>">
+                    <div class="accordion-group">
+                        <div class="accordion-heading">
+                            <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion-<%= req.id %>" href="#collapse-<%= req.id %>">
+                                <%= req.method %> <%= req.url %>
+                                <span style="float:right;"><%= moment.utc(req.started_at).local().format() %></span>
+                            </a>
+                        </div>
+                    <div id="collapse-<%= req.id %>" class="accordion-body collapse">
+                    <div class="accordion-inner">
+                        <table class="req-headers table">
+                            <thead><tr>
+                                <th>Name</th>
+                                <th>Value
+                            </tr></thead>
+                            <tbody>
+                            <% _.each(req.headers, function(v, k) { %>
+                                <tr>
+                                    <td><%= k %></td>
+                                    <td><%= v %></td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </script>
+
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+        <script src="bootstrap/js/bootstrap.min.js"></script>
+        <script src="js/underscore-min.js"></script>
+        <script src="js/moment.min.js"></script>
+        <script src="/__httpipe_socket.io/socket.io.js"></script>
+        <script type="text/javascript">
+$(document).ready(function() {
+    // html stuff
+    var request_template = _.template($('#request-template').html());
+    var $requests_container = $('#requests-container');
+
+    // socket.io
+    var socket = io.connect(null, {resource: '__httpipe_socket.io'});
+    socket.on('connect', function() {
+        console.log('socket connected');
+
+        socket.on('request', function(req) {
+            console.log(req);
+            $requests_container.prepend(request_template({
+                req: req
+            }));
+        });
+    });
+});
+        </script>
+    </body>
+</html>
