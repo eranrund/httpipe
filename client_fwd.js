@@ -2,7 +2,9 @@ var io_client = require('socket.io-client'),
     http = require('http');
 
 // TODO
-var socket = io_client.connect('http://127.0.0.1:8888', {
+var server_url = 'http://'+process.argv[2]+':8888';
+console.log('Working with: '+server_url);
+var socket = io_client.connect(server_url, {
     resource: '__httpipe_socket.io'
 });
 
