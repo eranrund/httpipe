@@ -3,23 +3,34 @@ var io_client = require('socket.io-client'),
 
 // TODO
 var socket = io_client.connect('http://127.0.0.1:8888', {
-    resource: '__XXX_socket.io'
+    resource: '__httpipe_socket.io'
 });
 
 socket.on('connect', function() {
-    console.log('XXXFwdClient: connected!');
+    console.log('HttpipeFwdClient: connected!');
     socket.emit('room:join', 'fwd');
+});
+
+socket.on('disconnect', function() {
+    console.log('HttpipeFwdClient: disconnected :-(');
+});
+
+socket.on('error', function(err) {
+    console.error('HttpipeFwdClient: Error: '+err);
 });
 
 // req: id, method, url, headers, data
 socket.on('request', function(req) {
     console.log(req.method+' '+req.url+': forwarding...');
 
+    // TODO
+    req.headers['host'] = 'httpbin.org';
+
     // Create client to do this
     var client = http.request({
-        //host: 'www.keves.org', // TODO
-        host: '127.0.0.1',
-        port: 81,
+        host: 'httpbin.org', // TODO
+        //host: '127.0.0.1',
+        port: 80,
         path: req.url,
         method: req.method,
         headers: req.headers,
