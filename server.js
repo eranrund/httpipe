@@ -5,7 +5,8 @@ var http = require('http'),
     crypto = require('crypto'),
     express = require('express'),
     events = require('events'),
-    moment = require('moment');
+    moment = require('moment'),
+    _ = require('underscore')._;
 
 
 
@@ -48,8 +49,12 @@ var SocketIoServer = (function() {
                 self.on_room_join(socket, data);
             });
 
-            socket.on('fwd_response', function(data) {
-                self.emit('fwd_response', socket, data);
+            // pluggable events (ugly...)
+            // TODO variable arguments instead of data
+            _.each(['fwd_response', 'replay_request'], function(event) {
+                socket.on(event, function(data) {
+                    self.emit(event, socket, data);
+                });
             });
         });
 
@@ -205,9 +210,11 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
 
         console.log('httpi.pe: fwd_response: '+req_info.req.url+': '+data.status_code);
 
-        req_info.resp.writeHead(data.status_code, data.headers);
-        req_info.resp.write(data.data);
-        req_info.resp.end();
+        if (req_info.resp) {
+            req_info.resp.writeHead(data.status_code, data.headers);
+            req_info.resp.write(data.data);
+            req_info.resp.end();
+        }
 
         // Broadcast the response
         socketio_server.broadcast('response', req_info.req.id, {
@@ -218,6 +225,42 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
         });
 
         delete pending_fwd_requests[req_id];
+    });
+
+    // replay requests from frontend
+    socketio_server.on('replay_request', function(socket, req) {
+        // TODO vertify req?
+
+        // Add our metadata
+        req.id = crypto.randomBytes(16).toString('hex');
+        req.started_at = moment.utc().valueOf();
+
+        req.data = req.data ? req.data : '';
+
+        // See if there are forwarders or not
+        if (socketio_server.is_room_empty('fwd')) {
+            console.log('httpi.pe: REPLAY: '+req.method+' '+req.url+ ' ('+req.data.length+' data bytes): no forwarders');
+
+            req.forwarded = false;
+
+            // Broadcast the request & response
+            console.log(req);
+            socketio_server.broadcast('request', req);
+            socketio_server.broadcast('response', req.id, {
+                status_code: 200,
+                headers: {}, // TODO how to figure out the headers we write
+                data: 'OK',
+                auto: true, // Indicates this is generated as we have no forwarders
+            });
+        } else {
+            // Store state to enable forwarder response
+            req.forwarded = true;
+            pending_fwd_requests[req.id] = {req: req, resp: null}; // No response as there isn't an actual client waiting for one
+
+            // Broadcast request
+            socketio_server.broadcast('request', req);
+        }
+
     });
 });
 

@@ -17,6 +17,14 @@
             height: 16px;
             line-height: 16px;
         }
+
+        /* TODO sucky selector, search-replace this */
+        .request .accordion-heading .icon-refresh {
+            border: 1px solid #fff;
+        }
+        .request .accordion-heading .icon-refresh:hover {
+            border: 1px solid #aaa;
+        }
         </style>
     </head>
     <body>
@@ -59,7 +67,10 @@
                                 <i class="icon-thumbs-down" style="display:none;"></i>
                                 <i class="icon-ajax"></i>
                                 <%= req.method %> <%= _.escape(req.url) %>
-                                <span style="float:right;"><%= moment.utc(req.started_at).local().format() %></span>
+                                <span style="float:right;">
+                                    <%= moment.utc(req.started_at).local().format() %>
+                                    <i class="icon-refresh"></i>
+                                </span>
                             </a>
                         </div>
                     <div id="collapse-<%= req.id %>" class="accordion-body collapse">
@@ -118,9 +129,11 @@ $(document).ready(function() {
 
         socket.on('request', function(req) {
             console.log('REQ', req);
-            $requests_container.prepend(request_template({
+            var $el = $(request_template({
                 req: req
             }));
+            $el.data('httpipe-req', req);
+            $requests_container.prepend($el);
         });
 
         socket.on('response', function(req_id, resp) {
@@ -146,6 +159,23 @@ $(document).ready(function() {
             $container.find('.tab-response').html(response_template({
                 resp: resp
             }));
+        });
+    });
+
+    // buttons
+    $requests_container.on('click', '.request .accordion-heading .icon-refresh', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        var req = $(this).parents('div.request').data('httpipe-req');
+        console.log('replay', req);
+
+        // Replay request
+        socket.emit('replay_request', {
+            method: req.method,
+            url: req.url,
+            headers: req.headers,
+            data: req.data,
         });
     });
 });
