@@ -9,6 +9,14 @@
         body {
             padding-top: 60px;
         }
+
+        .icon-ajax {
+            background-image: url("img/ajax.gif");
+            background-position: 0 0;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+        }
         </style>
     </head>
     <body>
@@ -43,32 +51,13 @@
         <script type="text/template" id="request-template">
         <div id="<%= req.id %>" class="request row">
             <div class="span12">
-                <!-- <div>
-                    <h3 style="float:left;">
-                        <i class="icon-zoom-in" style="vertical-align:middle;"></i>
-                        <%= req.method %> <%= req.url %>
-                    </h2>
-                    <span style="float:right;"><%= moment.utc(req.started_at).format() %></span>
-                </div>
-                <table class="req-headers table">
-                    <thead><tr>
-                        <th>Name</th>
-                        <th>Value
-                    </tr></thead>
-                    <tbody>
-                    <% _.each(req.headers, function(v, k) { %>
-                        <tr>
-                            <td><%= k %></td>
-                            <td><%= v %></td>
-                        </tr>
-                    <% }) %>
-                    </tbody>
-                </table> -->
-
                 <div class="accordion" id="accordion-<%= req.id %>">
                     <div class="accordion-group">
                         <div class="accordion-heading">
                             <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion-<%= req.id %>" href="#collapse-<%= req.id %>">
+                                <i class="icon-thumbs-up" style="display:none;"></i>
+                                <i class="icon-thumbs-down" style="display:none;"></i>
+                                <i class="icon-ajax"></i>
                                 <%= req.method %> <%= req.url %>
                                 <span style="float:right;"><%= moment.utc(req.started_at).local().format() %></span>
                             </a>
@@ -112,10 +101,30 @@ $(document).ready(function() {
         console.log('socket connected');
 
         socket.on('request', function(req) {
-            console.log(req);
+            console.log('REQ', req);
             $requests_container.prepend(request_template({
                 req: req
             }));
+        });
+
+        socket.on('response', function(req_id, resp) {
+            console.log('RESP', req_id, resp);
+
+            // Get container
+            var $container = $('#requests-container').find('#'+req_id);
+            if (!$container || !$container.length) {
+                // TODO
+                console.log('no request :(');
+                return;
+            }
+
+            // Icon management
+            $container.find('.accordion-toggle .icon-ajax').hide();
+            if ((resp.status_code) >= 200 && (resp.status_code <= 299)) { // TODO
+                $container.find('.accordion-toggle .icon-thumbs-up').show();
+            } else {
+                $container.find('.accordion-toggle .icon-thumbs-down').show();
+            }
         });
     });
 });

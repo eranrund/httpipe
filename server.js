@@ -58,8 +58,8 @@ var SocketIoServer = (function() {
     SocketIoServer.prototype.__proto__ = events.EventEmitter.prototype;
 
     // broadcast
-    SocketIoServer.prototype.broadcast = function(event, data) {
-        this.io.sockets.emit(event, data);
+    SocketIoServer.prototype.broadcast = function() {
+        this.io.sockets.emit.apply(this.io.sockets, arguments);
         return this;
     };
 
@@ -101,8 +101,16 @@ var ReqCatcherServer = (function() {
         var that = this;
         //console.log('ReqCatcherServer: on_raw_request: '+req.url);
 
-        // Store when the request was started
-        req.started_at = moment.utc().valueOf();
+        // httpipe specific data
+        req.httpipe_data = {
+            id: crypto.randomBytes(16).toString('hex'),
+            method: req.method,
+            url: req.url,
+            headers: req.headers,
+            data: null,
+            started_at: moment.utc().valueOf(),
+
+        };
 
         // Read incoming data
         var data = '';
@@ -120,8 +128,8 @@ var ReqCatcherServer = (function() {
     ReqCatcherServer.prototype.on_request = function(req, data, resp) {
         console.log('ReqCatcherServer: on_request: '+req.method+' '+req.url+ ' ('+data.length+' data bytes)');
 
-        // "unique" request id
-        var req_id = crypto.randomBytes(16).toString('hex');
+        // Store data
+        req.httpipe_data.data = data;
 
         // See if we have any listeners - if not we'll discard this request
         if (!this.listeners('request').length) {
@@ -132,14 +140,7 @@ var ReqCatcherServer = (function() {
 
         console.log(req);
 
-        this.emit('request', {
-            id: req_id,
-            method: req.method,
-            url: req.url,
-            headers: req.headers,
-            data: data,
-            started_at: req.started_at,
-        }, resp);
+        this.emit('request', req.httpipe_data, resp);
     };
 
     // TODO
@@ -162,22 +163,35 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
 
     // catch incoming requests
     reqcatcher_server.on('request', function(req, resp) {
-        // Broadcast request to all clients
-        socketio_server.broadcast('request', req);
 
         // See if we have any forwarders in the fwd socketio room
         // If we do, we'll let one of them handle generating a response
-        // (they were made aware of it through the broadcast above).
+        // (they were made aware of it through the broadcast below).
         // If we don't, we'll generate a response and finish with the request
         if (socketio_server.is_room_empty('fwd')) {
             console.log('httpi.pe: '+req.method+' '+req.url+ ' ('+req.data.length+' data bytes): no forwarders');
+
+            req.forwarded = false;
             resp.writeHead(200);
             resp.end('OK');
-            return;
-        }
 
-        // Store state to enable forwarder response
-        pending_fwd_requests[req.id] = {req: req, resp: resp};
+            // Broadcast the request & response
+            socketio_server.broadcast('request', req);
+
+            socketio_server.broadcast('response', req.id, {
+                status_code: 200,
+                headers: {}, // TODO how to figure out the headers we write
+                data: 'OK',
+                auto: true, // Indicates this is generated as we have no forwarders
+            });
+        } else {
+            // Store state to enable forwarder response
+            req.forwarded = true;
+            pending_fwd_requests[req.id] = {req: req, resp: resp};
+
+            // Broadcast request
+            socketio_server.broadcast('request', req);
+        }
     });
 
     // handle responses from forwarders
@@ -194,6 +208,14 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
         req_info.resp.writeHead(data.status_code, data.headers);
         req_info.resp.write(data.data);
         req_info.resp.end();
+
+        // Broadcast the response
+        socketio_server.broadcast('response', req_info.req.id, {
+            status_code: data.status_code,
+            headers: data.headers,
+            data: data,
+            auto: false, // Indicates this is from a forwarder
+        });
 
         delete pending_fwd_requests[req_id];
     });
