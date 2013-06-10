@@ -213,7 +213,7 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
         socketio_server.broadcast('response', req_info.req.id, {
             status_code: data.status_code,
             headers: data.headers,
-            data: data,
+            data: data.data,
             auto: false, // Indicates this is from a forwarder
         });
 

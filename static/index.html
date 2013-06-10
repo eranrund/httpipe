@@ -58,30 +58,45 @@
                                 <i class="icon-thumbs-up" style="display:none;"></i>
                                 <i class="icon-thumbs-down" style="display:none;"></i>
                                 <i class="icon-ajax"></i>
-                                <%= req.method %> <%= req.url %>
+                                <%= req.method %> <%= _.escape(req.url) %>
                                 <span style="float:right;"><%= moment.utc(req.started_at).local().format() %></span>
                             </a>
                         </div>
                     <div id="collapse-<%= req.id %>" class="accordion-body collapse">
                     <div class="accordion-inner">
-                        <table class="req-headers table">
-                            <thead><tr>
-                                <th>Name</th>
-                                <th>Value
-                            </tr></thead>
-                            <tbody>
-                            <% _.each(req.headers, function(v, k) { %>
-                                <tr>
-                                    <td><%= k %></td>
-                                    <td><%= v %></td>
-                                </tr>
-                            <% }) %>
-                            </tbody>
-                        </table>
+                        <ul class="nav nav-tabs">
+                            <li class="active"><a href="#tab-<%= req.id %>-req" data-toggle="tab">Request</a>
+                            <li><a href="#tab-<%= req.id %>-resp" data-toggle="tab">Response</a>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="tab-<%= req.id %>-req">
+                                <table class="req-headers table">
+                                    <thead><tr>
+                                        <th>Name</th>
+                                        <th>Value
+                                    </tr></thead>
+                                    <tbody>
+                                    <% _.each(req.headers, function(v, k) { %>
+                                        <tr>
+                                            <td><%= _.escape(k) %></td>
+                                            <td><%= _.escape(v) %></td>
+                                        </tr>
+                                    <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="tab-pane tab-response" id="tab-<%= req.id %>-resp">
+                                Waiting for response...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        </script>
+
+        <script type="text/template" id="response-template">
+        <pre><%= _.escape(resp.data) %></pre>
         </script>
 
         <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
@@ -93,6 +108,7 @@
 $(document).ready(function() {
     // html stuff
     var request_template = _.template($('#request-template').html());
+    var response_template = _.template($('#response-template').html());
     var $requests_container = $('#requests-container');
 
     // socket.io
@@ -125,6 +141,11 @@ $(document).ready(function() {
             } else {
                 $container.find('.accordion-toggle .icon-thumbs-down').show();
             }
+
+            // Response
+            $container.find('.tab-response').html(response_template({
+                resp: resp
+            }));
         });
     });
 });
