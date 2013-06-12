@@ -5,25 +5,35 @@
         <title>httpi.pe</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="bootstrap/css/darkstrap.min.css" rel="stylesheet" media="screen">
         <style>
         body {
             padding-top: 60px;
         }
 
         .icon-ajax {
-            background-image: url("img/ajax.gif");
+            background-image: url("img/ajax-dark.gif");
             background-position: 0 0;
             width: 16px;
             height: 16px;
             line-height: 16px;
         }
 
+        .nav {
+            margin-bottom: 0px;
+        }
+
+        .magic-url {
+            font-weight: bold;
+        }
+
         /* TODO sucky selector, search-replace this */
         .request .accordion-heading .icon-refresh {
-            border: 1px solid #fff;
+            border: 1px solid #2f2f2f;
         }
         .request .accordion-heading .icon-refresh:hover {
-            border: 1px solid #aaa;
+            border: 1px solid #eee;
+            cursor: pointer;
         }
         </style>
     </head>
@@ -36,20 +46,28 @@
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <a class="brand" href="#">Project name</a>
+                    <a class="brand" href="#">httpi.pe</a>
                     <div class="nav-collapse collapse">
                         <ul class="nav">
                             <li class="active"><a href="#">Home</a></li>
                             <li><a href="#about">About</a></li>
-                            <li><a href="#contact">Contact</a></li>
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="container">
-            <h1>httpi.pe</h1>
+        <div class="container top-container">
+            <div class="row">
+                <div class="span3">
+                    <h1>httpi.pe</h1>
+                </div>
+                <div class="span9 info">
+                    Welcome to <strong>httpi.pe!</strong><br/>
+                    Make requests to <span class="magic-url"></span>. We will log it for you, but this is not the highlight of this service.<br/>
+                    The real magic is that we let you redirect the request to an internal web server using a lightweight redirector running on your machine. <a href="https://github.com/eranrund/httpipe">Learn more...</a>
+                </div>
+            </div>
         </div>
 
         <div class="container" id="requests-container">
@@ -62,16 +80,18 @@
                 <div class="accordion" id="accordion-<%= req.id %>">
                     <div class="accordion-group">
                         <div class="accordion-heading">
-                            <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion-<%= req.id %>" href="#collapse-<%= req.id %>">
+                            <a class="accordion-toggle" style="float:left;" data-toggle="collapse" data-parent="#accordion-<%= req.id %>" href="#collapse-<%= req.id %>">
                                 <i class="icon-thumbs-up" style="display:none;"></i>
                                 <i class="icon-thumbs-down" style="display:none;"></i>
                                 <i class="icon-ajax"></i>
                                 <%= req.method %> <%= _.escape(req.url) %>
-                                <span style="float:right;">
-                                    <%= moment.utc(req.started_at).local().format() %>
-                                    <i class="icon-refresh"></i>
-                                </span>
                             </a>
+                            <div style="float:left; padding: 8px 0px;" class="status-text">[Waiting...]</div>
+                            <div style="float:right; padding: 8px 15px;">
+                                <%= moment.utc(req.started_at).local().format() %>
+                                <a title="Replay request"><i class="icon-refresh"></i></a>
+                            </div>
+                            <div class="clearfix"></div>
                         </div>
                     <div id="collapse-<%= req.id %>" class="accordion-body collapse">
                     <div class="accordion-inner">
@@ -80,12 +100,10 @@
                             <li><a href="#tab-<%= req.id %>-resp" data-toggle="tab">Response</a>
                         </ul>
                         <div class="tab-content">
+                            <!-- request tab -->
                             <div class="tab-pane active" id="tab-<%= req.id %>-req">
-                                <table class="req-headers table">
-                                    <thead><tr>
-                                        <th>Name</th>
-                                        <th>Value
-                                    </tr></thead>
+                                <h4>Headers</h4>
+                                <table class="req-headers table table-condensed">
                                     <tbody>
                                     <% _.each(req.headers, function(v, k) { %>
                                         <tr>
@@ -96,6 +114,8 @@
                                     </tbody>
                                 </table>
                             </div>
+
+                            <!-- response tab -->
                             <div class="tab-pane tab-response" id="tab-<%= req.id %>-resp">
                                 Waiting for response...
                             </div>
@@ -107,7 +127,22 @@
         </script>
 
         <script type="text/template" id="response-template">
-        <pre><%= _.escape(resp.data) %></pre>
+        <h4>Headers</h4>
+        <table class="resp-headers table table-condensed">
+            <tbody>
+            <% _.each(resp.headers, function(v, k) { %>
+                <tr>
+                    <td><%= _.escape(k) %></td>
+                    <td><%= _.escape(v) %></td>
+                </tr>
+            <% }) %>
+            </tbody>
+        </table>
+
+        <h4>Body</h4>
+        <div style="max-height: 200px; overflow-y: auto;">
+            <pre><%= _.escape(resp.data) %></pre>
+        </div>
         </script>
 
         <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
@@ -116,7 +151,70 @@
         <script src="js/moment.min.js"></script>
         <script src="/__httpipe_socket.io/socket.io.js"></script>
         <script type="text/javascript">
+///////////////////////////////////////////////////////////////////////////////
+// Settings
+///////////////////////////////////////////////////////////////////////////////
+
+var HTTPIPE_SID_LEN = 10;
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Settings
+///////////////////////////////////////////////////////////////////////////////
+
+var HttpipeFrontendApp = (function() {
+    function HttpipeFrontendApp() {
+        var self = this;
+
+        // Bind hash change event
+        $(window).bind('hashchange', function(e) {
+            window.location.reload();
+        });
+
+        // Init
+        this.init();
+    }
+
+    HttpipeFrontendApp.prototype.init = function() {
+        // See if we have a session id hash
+        var sid = '';
+        if (!window.location.hash || window.location.hash.length != (HTTPIPE_SID_LEN+1)) {
+            // Generate a new id
+            var charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            for (var i = 0; i < HTTPIPE_SID_LEN; ++i) {
+                sid += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+
+            // Switch to the sid
+            window.location.hash = sid;
+            return;
+        } else {
+            sid = window.location.hash.substr(1);
+        }
+
+        // Store sid
+        this.sid = sid;
+
+        // Set info
+        var url = 'http://' + this.sid + '.' + window.location.host + '/';
+        $('.top-container .info .magic-url').html('<a href="'+url+'" target="_blank">'+url+'</a>');
+
+        console.log('Session id: '+sid);
+
+    }
+
+    return HttpipeFrontendApp;
+})();
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Init
+///////////////////////////////////////////////////////////////////////////////
+
 $(document).ready(function() {
+    // Create app instance
+    var app = new HttpipeFrontendApp();
+
     // html stuff
     var request_template = _.template($('#request-template').html());
     var response_template = _.template($('#response-template').html());
@@ -125,41 +223,44 @@ $(document).ready(function() {
     // socket.io
     var socket = io.connect(null, {resource: '__httpipe_socket.io'});
     socket.on('connect', function() {
-        console.log('socket connected');
+        console.log('socket connected', socket);
+    });
 
-        socket.on('request', function(req) {
-            console.log('REQ', req);
-            var $el = $(request_template({
-                req: req
-            }));
-            $el.data('httpipe-req', req);
-            $requests_container.prepend($el);
-        });
+    socket.on('request', function(req) {
+        console.log('REQ', req);
+        var $el = $(request_template({
+            req: req
+        }));
+        $el.data('httpipe-req', req);
+        $requests_container.prepend($el);
+    });
 
-        socket.on('response', function(req_id, resp) {
-            console.log('RESP', req_id, resp);
+    socket.on('response', function(req_id, resp) {
+        console.log('RESP', req_id, resp);
 
-            // Get container
-            var $container = $('#requests-container').find('#'+req_id);
-            if (!$container || !$container.length) {
-                // TODO
-                console.log('no request :(');
-                return;
-            }
+        // Get container
+        var $container = $('#requests-container').find('#'+req_id);
+        if (!$container || !$container.length) {
+            // TODO
+            console.log('no request :(');
+            return;
+        }
 
-            // Icon management
-            $container.find('.accordion-toggle .icon-ajax').hide();
-            if ((resp.status_code) >= 200 && (resp.status_code <= 299)) { // TODO
-                $container.find('.accordion-toggle .icon-thumbs-up').show();
-            } else {
-                $container.find('.accordion-toggle .icon-thumbs-down').show();
-            }
+        // Icon management
+        $container.find('.accordion-toggle .icon-ajax').hide();
+        if ((resp.status_code) >= 200 && (resp.status_code <= 299)) { // TODO
+            $container.find('.accordion-toggle .icon-thumbs-up').show();
+        } else {
+            $container.find('.accordion-toggle .icon-thumbs-down').show();
+        }
 
-            // Response
-            $container.find('.tab-response').html(response_template({
-                resp: resp
-            }));
-        });
+        // Status text
+        $container.find('.accordion-heading .status-text').text('[' + resp.status_code + ']');
+
+        // Response
+        $container.find('.tab-response').html(response_template({
+            resp: resp
+        }));
     });
 
     // buttons

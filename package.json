@@ -1,3 +1,5 @@
 {
-    "name": "httpipe"
+    "name": "httpipe",
+    "description": "see https://github.com/eranrund/httpipe",
+    "version": "0.0.1"
 }

@@ -24,7 +24,9 @@ var http = require('http'),
 
 var frontend_app = express();
 frontend_app.use(express.static(__dirname + '/static'));
-
+frontend_app.use(function(req, resp) {
+    resp.send(404, 'Not found');
+});
 
 ///////////////////////////////////////////////////////////////////////////////
 // socket.io server
@@ -89,9 +91,11 @@ var SocketIoServer = (function() {
 
 var ReqCatcherServer = (function() {
     // Constructor
-    function ReqCatcherServer() {
+    function ReqCatcherServer(frontend_hosts) {
         var self = this;
         events.EventEmitter.call(this);
+
+        this.frontend_hosts = frontend_hosts;
 
         this.app = http
             .createServer(function(req, resp) { self.on_raw_request(req, resp); })
@@ -102,8 +106,13 @@ var ReqCatcherServer = (function() {
 
     // Incoming HTTP request handler that reads all incoming
     // data before moving on to on_request
-    ReqCatcherServer.prototype.on_raw_request = function(req, resp) {
+    ReqCatcherServer.prototype.on_raw_request = function(req, resp, next) {
         var that = this;
+
+        // Skip requests if it goes to a frotned host
+        if (!req.headers.host) return next();
+        var host = req.headers.host.split(':')[0];
+
         //console.log('ReqCatcherServer: on_raw_request: '+req.url);
 
         // httpipe specific data
@@ -268,6 +277,9 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
 // Main app
 ///////////////////////////////////////////////////////////////////////////////
 
+// Configuration
+frontend_hosts = ['httpi.pe', 'www.httppi.pe', 'local.httpi.pe'];
+
 // Init main server
 var app = express()
   , server = http.createServer(app);
@@ -275,12 +287,14 @@ var app = express()
 // socketio
 var socketio_server = new SocketIoServer(server);
 
-// request catcher
-var reqcatcher_server = new ReqCatcherServer();
-app.use(express.vhost('*.httpi.pe', reqcatcher_server.app));
-
 // frontend
-app.use(express.vhost('*', frontend_app));
+_.each(frontend_hosts, function(host) {
+    app.use(express.vhost(host, frontend_app));
+});
+
+// request catcher
+var reqcatcher_server = new ReqCatcherServer(frontend_hosts);
+app.use(express.vhost('*.httpi.pe', reqcatcher_server.app));
 
 // httpi.pe app
 httpipeBusinessLogic(reqcatcher_server, socketio_server);
