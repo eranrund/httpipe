@@ -122,6 +122,18 @@
       "from": "moment@",
       "resolved": "https://registry.npmjs.org/moment/-/moment-2.0.0.tgz"
     },
+    "optimist": {
+      "version": "0.5.2",
+      "from": "optimist@",
+      "resolved": "https://registry.npmjs.org/optimist/-/optimist-0.5.2.tgz",
+      "dependencies": {
+        "wordwrap": {
+          "version": "0.0.2",
+          "from": "wordwrap@~0.0.2",
+          "resolved": "https://registry.npmjs.org/wordwrap/-/wordwrap-0.0.2.tgz"
+        }
+      }
+    },
     "socket.io": {
       "version": "0.9.16",
       "from": "socket.io@",
