@@ -1,21 +1,11 @@
 var http = require('http'),
     io_server = require('socket.io'),
     io_client = require('socket.io-client'),
-    //fs = require('fs'),
     crypto = require('crypto'),
     express = require('express'),
     events = require('events'),
     moment = require('moment'),
     _ = require('underscore')._;
-
-
-
-// TODO
-/*Object.prototype.getName = function() {
-   var funcNameRegex = /function (.{1,})\(/;
-   var results = (funcNameRegex).exec((this).constructor.toString());
-   return (results && results.length > 1) ? results[1] : "";
-};*/
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -52,10 +42,11 @@ var SocketIoServer = (function() {
             });
 
             // pluggable events (ugly...)
-            // TODO variable arguments instead of data
             _.each(['fwd_response', 'replay_request'], function(event) {
-                socket.on(event, function(data) {
-                    self.emit(event, socket, data);
+                socket.on(event, function() {
+                    var args = [event, socket];
+                    _.each(arguments, function(arg) { args.push(arg); });
+                    self.emit.apply(self, args);
                 });
             });
         });

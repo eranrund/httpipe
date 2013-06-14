@@ -8,7 +8,8 @@
         <link href="bootstrap/css/darkstrap.min.css" rel="stylesheet" media="screen">
         <style>
         body {
-            padding-top: 60px;
+            /* used for navbar - not needed for now padding-top: 60px; */
+            padding-top: 10px;
         }
 
         .icon-ajax {
@@ -26,6 +27,9 @@
         .top-container .info {
             margin-bottom: 10px;
         }
+        .top-container .sid {
+            font-style: italic;
+        }
 
         .magic-url {
             font-weight: bold;
@@ -42,7 +46,7 @@
         </style>
     </head>
     <body>
-        <div class="navbar navbar-inverse navbar-fixed-top">
+        <!-- not needed for now <div class="navbar navbar-inverse navbar-fixed-top">
             <div class="navbar-inner">
                 <div class="container">
                     <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
@@ -59,12 +63,17 @@
                     </div>
                 </div>
             </div>
+        </div> -->
+
+        <div class="navbar navbar-fixed-bottom">
+            Copyright &copy; Eran Rundstein (<a href="mailto:eranrund@gmail.com">eranrund@gmail.com</a>)
         </div>
 
         <div class="container top-container">
             <div class="row">
                 <div class="span3">
                     <h1>httpi.pe</h1>
+                    <span class="sid">Loading...</span>
                 </div>
                 <div class="span9 info">
                     Make requests to <span class="magic-url"></span>. We will log it for you, but this is not the highlight of this service.<br/>
@@ -87,9 +96,9 @@
                                 <i class="icon-thumbs-up" style="display:none;"></i>
                                 <i class="icon-thumbs-down" style="display:none;"></i>
                                 <i class="icon-ajax"></i>
+                                <div class="status-text label">Waiting...</div>
                                 <%= req.method %> <%= _.escape(req.url) %>
                             </a>
-                            <div style="float:left; padding: 8px 0px;" class="status-text">[Waiting...]</div>
                             <div style="float:right; padding: 8px 15px;">
                                 <%= moment.utc(req.started_at).local().format() %>
                                 <a title="Replay request"><i class="icon-refresh"></i></a>
@@ -212,6 +221,7 @@ var HttpipeFrontendApp = (function() {
         // Set info
         var url = 'http://' + this.sid + '.' + window.location.host + '/';
         $('.top-container .info .magic-url').html('<a href="'+url+'" target="_blank">'+url+'</a>');
+        $('.top-container .sid').text(sid);
 
         console.log('Session id: '+sid);
 
@@ -264,12 +274,14 @@ var HttpipeFrontendApp = (function() {
         $container.find('.accordion-toggle .icon-ajax').hide();
         if ((resp.status_code) >= 200 && (resp.status_code <= 299)) { // TODO
             $container.find('.accordion-toggle .icon-thumbs-up').show();
+            $container.find('.accordion-heading .status-text').addClass('label-success');
         } else {
             $container.find('.accordion-toggle .icon-thumbs-down').show();
+            $container.find('.accordion-heading .status-text').addClass('label-important');
         }
 
         // Status text
-        $container.find('.accordion-heading .status-text').text('[' + resp.status_code + ']');
+        $container.find('.accordion-heading .status-text').text(resp.status_code);
 
         // Response
         $container.find('.tab-response').html(this.response_template({ resp: resp }));
