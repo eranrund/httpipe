@@ -3,6 +3,7 @@ var io_client = require('socket.io-client'),
 
 // TODO
 var server_url = 'http://'+process.argv[2]+':8888';
+var sid = process.argv[3];
 console.log('Working with: '+server_url);
 var socket = io_client.connect(server_url, {
     resource: '__httpipe_socket.io'
@@ -10,7 +11,8 @@ var socket = io_client.connect(server_url, {
 
 socket.on('connect', function() {
     console.log('HttpipeFwdClient: connected!');
-    socket.emit('room:join', 'fwd');
+    socket.emit('room:join', sid);
+    socket.emit('room:join', sid+':fwd');
 });
 
 socket.on('disconnect', function() {

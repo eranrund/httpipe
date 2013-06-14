@@ -64,9 +64,17 @@ var SocketIoServer = (function() {
 
     SocketIoServer.prototype.__proto__ = events.EventEmitter.prototype;
 
-    // broadcast
-    SocketIoServer.prototype.broadcast = function() {
+    // broadcast to everyone
+    /* UNUSED SocketIoServer.prototype.broadcast = function() {
         this.io.sockets.emit.apply(this.io.sockets, arguments);
+        return this;
+    }; */
+
+    // broadcast to a room
+    SocketIoServer.prototype.broadcast_to = function() {
+        var room_name = [].shift.apply(arguments);
+        var room = this.io.sockets.in(room_name);
+        room.emit.apply(room, arguments);
         return this;
     };
 
@@ -109,9 +117,8 @@ var ReqCatcherServer = (function() {
     ReqCatcherServer.prototype.on_raw_request = function(req, resp, next) {
         var that = this;
 
-        // Skip requests if it goes to a frotned host
-        if (!req.headers.host) return next();
-        var host = req.headers.host.split(':')[0];
+        // Get the session id we are operating with
+        var sid = req.headers.host.split('.')[0];
 
         //console.log('ReqCatcherServer: on_raw_request: '+req.url);
 
@@ -123,7 +130,7 @@ var ReqCatcherServer = (function() {
             headers: req.headers,
             data: null,
             started_at: moment.utc().valueOf(),
-
+            sid: sid
         };
 
         // Read incoming data
@@ -152,8 +159,6 @@ var ReqCatcherServer = (function() {
             return;
         }
 
-        console.log(req);
-
         this.emit('request', req.httpipe_data, resp);
     };
 
@@ -177,22 +182,24 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
 
     // catch incoming requests
     reqcatcher_server.on('request', function(req, resp) {
+        // Get session id
+        var sid = req.sid;
 
         // See if we have any forwarders in the fwd socketio room
         // If we do, we'll let one of them handle generating a response
         // (they were made aware of it through the broadcast below).
         // If we don't, we'll generate a response and finish with the request
-        if (socketio_server.is_room_empty('fwd')) {
-            console.log('httpi.pe: '+req.method+' '+req.url+ ' ('+req.data.length+' data bytes): no forwarders');
+        if (socketio_server.is_room_empty(sid+':fwd')) {
+            console.log('httpi.pe: ['+sid+'] '+req.method+' '+req.url+ ' ('+req.data.length+' data bytes): no forwarders');
 
             req.forwarded = false;
             resp.writeHead(200);
             resp.end('OK');
 
             // Broadcast the request & response
-            socketio_server.broadcast('request', req);
+            socketio_server.broadcast_to(sid, 'request', req);
 
-            socketio_server.broadcast('response', req.id, {
+            socketio_server.broadcast_to(sid, 'response', req.id, {
                 status_code: 200,
                 headers: {}, // TODO how to figure out the headers we write
                 data: 'OK',
@@ -204,7 +211,7 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
             pending_fwd_requests[req.id] = {req: req, resp: resp};
 
             // Broadcast request
-            socketio_server.broadcast('request', req);
+            socketio_server.broadcast_to(sid, 'request', req);
         }
     });
 
@@ -226,7 +233,7 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
         }
 
         // Broadcast the response
-        socketio_server.broadcast('response', req_info.req.id, {
+        socketio_server.broadcast_to(req_info.req.sid, 'response', req_info.req.id, {
             status_code: data.status_code,
             headers: data.headers,
             data: data.data,
@@ -253,7 +260,6 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
             req.forwarded = false;
 
             // Broadcast the request & response
-            console.log(req);
             socketio_server.broadcast('request', req);
             socketio_server.broadcast('response', req.id, {
                 status_code: 200,

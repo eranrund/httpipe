@@ -63,7 +63,6 @@
                     <h1>httpi.pe</h1>
                 </div>
                 <div class="span9 info">
-                    Welcome to <strong>httpi.pe!</strong><br/>
                     Make requests to <span class="magic-url"></span>. We will log it for you, but this is not the highlight of this service.<br/>
                     The real magic is that we let you redirect the request to an internal web server using a lightweight redirector running on your machine. <a href="https://github.com/eranrund/httpipe">Learn more...</a>
                 </div>
@@ -163,6 +162,7 @@ var HTTPIPE_SID_LEN = 10;
 ///////////////////////////////////////////////////////////////////////////////
 
 var HttpipeFrontendApp = (function() {
+    // Constructor
     function HttpipeFrontendApp() {
         var self = this;
 
@@ -173,9 +173,12 @@ var HttpipeFrontendApp = (function() {
 
         // Init
         this.init();
-    }
+    };
 
+    // Init
     HttpipeFrontendApp.prototype.init = function() {
+        var self = this;
+
         // See if we have a session id hash
         var sid = '';
         if (!window.location.hash || window.location.hash.length != (HTTPIPE_SID_LEN+1)) {
@@ -201,7 +204,83 @@ var HttpipeFrontendApp = (function() {
 
         console.log('Session id: '+sid);
 
+        // Init templates
+        this.request_template = _.template($('#request-template').html());
+        this.response_template = _.template($('#response-template').html());
+
+        // Init DOM events (buttons, etc)
+        $('#requests-container').on('click', '.request .accordion-heading .icon-refresh', $.proxy(this.on_btn_req_replay, this));
+
+        // Init socket.io
+        var socket = io.connect(null, {
+            resource: '__httpipe_socket.io',
+        });
+        this.socket = socket;
+
+        socket.on('connect', function() {
+            console.log('socket connected!', socket);
+            socket.emit('room:join', sid);
+        });
+
+        socket.on('request', $.proxy(self.on_socket_request, self));
+        socket.on('response', $.proxy(self.on_socket_response, self));
+    };
+
+    // socket.io event: request
+    HttpipeFrontendApp.prototype.on_socket_request = function(req) {
+        console.log('REQ', req);
+
+        var $requests_container = $('#requests-container');
+
+        var $el = $(this.request_template({ req: req }));
+        $el.data('httpipe-req', req);
+        $requests_container.prepend($el);
+    };
+
+    // socket.io event: response
+    HttpipeFrontendApp.prototype.on_socket_response = function(req_id, resp) {
+        console.log('RESP', req_id, resp);
+
+        // Get container and template
+        var $container = $('#requests-container').find('#'+req_id);
+        if (!$container || !$container.length) {
+            // TODO
+            console.log('no request :(');
+            return;
+        }
+
+        // Icon management
+        $container.find('.accordion-toggle .icon-ajax').hide();
+        if ((resp.status_code) >= 200 && (resp.status_code <= 299)) { // TODO
+            $container.find('.accordion-toggle .icon-thumbs-up').show();
+        } else {
+            $container.find('.accordion-toggle .icon-thumbs-down').show();
+        }
+
+        // Status text
+        $container.find('.accordion-heading .status-text').text('[' + resp.status_code + ']');
+
+        // Response
+        $container.find('.tab-response').html(this.response_template({ resp: resp }));
+    };
+
+    // DOM event: request replay button
+    HttpipeFrontendApp.prototype.on_btn_req_replay = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        var req = $(e.target).parents('div.request').data('httpipe-req');
+        console.log('replay', req);
+
+        // Replay request
+        this.socket.emit('replay_request', {
+            method: req.method,
+            url: req.url,
+            headers: req.headers,
+            data: req.data,
+        });
     }
+
 
     return HttpipeFrontendApp;
 })();
@@ -215,6 +294,9 @@ $(document).ready(function() {
     // Create app instance
     var app = new HttpipeFrontendApp();
 
+    return;
+
+
     // html stuff
     var request_template = _.template($('#request-template').html());
     var response_template = _.template($('#response-template').html());
@@ -222,9 +304,9 @@ $(document).ready(function() {
 
     // socket.io
     var socket = io.connect(null, {resource: '__httpipe_socket.io'});
-    socket.on('connect', function() {
-        console.log('socket connected', socket);
-    });
+        socket.on('connect', function() {
+            console.log('socket connected', socket);
+        });
 
     socket.on('request', function(req) {
         console.log('REQ', req);
