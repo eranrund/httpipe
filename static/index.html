@@ -93,10 +93,10 @@
                     <div class="accordion-group">
                         <div class="accordion-heading">
                             <a class="accordion-toggle" style="float:left;" data-toggle="collapse" data-parent="#accordion-<%= req.id %>" href="#collapse-<%= req.id %>">
-                                <i class="icon-thumbs-up" style="display:none;"></i>
-                                <i class="icon-thumbs-down" style="display:none;"></i>
+                                <!-- <i class="icon-thumbs-up" style="display:none;"></i>
+                                <i class="icon-thumbs-down" style="display:none;"></i> -->
                                 <i class="icon-ajax"></i>
-                                <div class="status-text label">Waiting...</div>
+                                <div class="status-text label"></div>
                                 <%= req.method %> <%= _.escape(req.url) %>
                             </a>
                             <div style="float:right; padding: 8px 15px;">
