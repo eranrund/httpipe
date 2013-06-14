@@ -23,6 +23,10 @@
             margin-bottom: 0px;
         }
 
+        .top-container .info {
+            margin-bottom: 10px;
+        }
+
         .magic-url {
             font-weight: bold;
         }
@@ -112,6 +116,13 @@
                                     <% }) %>
                                     </tbody>
                                 </table>
+
+                                <% if (req.data.length) { %>
+                                    <h4>Body</h4>
+                                    <div style="max-height: 200px; overflow-y: auto;">
+                                        <pre><%= _.escape(req.data) %></pre>
+                                    </div>
+                                <% } %>
                             </div>
 
                             <!-- response tab -->
