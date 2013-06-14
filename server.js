@@ -254,14 +254,14 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
         req.data = req.data ? req.data : '';
 
         // See if there are forwarders or not
-        if (socketio_server.is_room_empty('fwd')) {
+        if (socketio_server.is_room_empty(req.sid + ':fwd')) {
             console.log('httpi.pe: REPLAY: '+req.method+' '+req.url+ ' ('+req.data.length+' data bytes): no forwarders');
 
             req.forwarded = false;
 
             // Broadcast the request & response
-            socketio_server.broadcast('request', req);
-            socketio_server.broadcast('response', req.id, {
+            socketio_server.broadcast_to(req.sid, 'request', req);
+            socketio_server.broadcast_to(req.sid, 'response', req.id, {
                 status_code: 200,
                 headers: {}, // TODO how to figure out the headers we write
                 data: 'OK',
@@ -273,7 +273,7 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
             pending_fwd_requests[req.id] = {req: req, resp: null}; // No response as there isn't an actual client waiting for one
 
             // Broadcast request
-            socketio_server.broadcast('request', req);
+            socketio_server.broadcast_to(req.sid, 'request', req);
         }
 
     });
