@@ -2,10 +2,15 @@
 // httpi.pe - forwarding client
 //
 // forwards requests of specified session id to a given server
+//
+// Copyright (c) 2013
+//    Eran Rundstein (eranrund@gmail.com)
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 var io_client = require('socket.io-client'),
-    http = require('http');
+    http = require('http'),
+    util = require('util');
 
 
 // Command line parsing
@@ -20,7 +25,23 @@ var httpipe_sid = argv._[0],
     fwd_dst     = argv._[1],
     httpipe_server = argv['httpipe-server'];
 
-console.log('Forwarding session '+httpipe_sid+' to '+fwd_dst+' (using '+httpipe_server+')');
+// Split fwd_dst into host:port
+var elems = fwd_dst.split(':');
+var fwd_dst_host = elems[0], fwd_dst_port = 80;
+if (elems.length == 2) {
+    fwd_dst_port = elems[1];
+} else if (elems.length != 1) {
+    throw util.format('Invalid destination server "%s"', fwd_dst);
+}
+
+if (!fwd_dst_host.length) {
+    fwd_dst_host = '127.0.0.1';
+}
+
+fwd_dst = fwd_dst_host+':'+fwd_dst_host;
+
+// Log
+console.log(util.format('Forwarding session %s to %s (using %s)', httpipe_sid, fwd_dst, fwd_dst, httpipe_server));
 
 // Init socket.io
 var socket = io_client.connect(httpipe_server, {
@@ -46,13 +67,13 @@ socket.on('error', function(err) {
 socket.on('request', function(req) {
     console.log(req.method+' '+req.url+': forwarding...');
 
-    // TODO
+    // Set proper host header
     req.headers['host'] = fwd_dst;
 
     // Create client to do this
     var client = http.request({
-        host: fwd_dst, // TODO
-        port: 80, // TODO
+        host: fwd_dst_host,
+        port: fwd_dst_port,
         path: req.url,
         method: req.method,
         headers: req.headers,
@@ -86,7 +107,6 @@ socket.on('request', function(req) {
         socket.emit('fwd_response', {
             req_id: req.id,
             status_code: 500,
-            // TODO headers: resp.headers, ??
             data: err.toString()
         });
 
