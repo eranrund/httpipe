@@ -5,6 +5,11 @@
       "from": "crypto@",
       "resolved": "https://registry.npmjs.org/crypto/-/crypto-0.0.3.tgz"
     },
+    "ejs": {
+      "version": "0.8.4",
+      "from": "ejs@",
+      "resolved": "https://registry.npmjs.org/ejs/-/ejs-0.8.4.tgz"
+    },
     "express": {
       "version": "3.2.6",
       "from": "express@",
@@ -112,6 +117,11 @@
           "resolved": "https://registry.npmjs.org/debug/-/debug-0.7.2.tgz"
         }
       }
+    },
+    "konphyg": {
+      "version": "1.2.0",
+      "from": "konphyg@",
+      "resolved": "https://registry.npmjs.org/konphyg/-/konphyg-1.2.0.tgz"
     },
     "memwatch": {
       "version": "0.2.2",

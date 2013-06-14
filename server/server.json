@@ -1,0 +1,5 @@
+{
+	"port": 8888,
+	"frontend_hosts": ["httpi.pe", "www.httppi.pe", "local.httpi.pe"],
+	"reqcatcher_host": "*.httpi.pe"
+}

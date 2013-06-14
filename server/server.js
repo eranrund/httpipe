@@ -5,7 +5,10 @@ var http = require('http'),
     express = require('express'),
     events = require('events'),
     moment = require('moment'),
-    _ = require('underscore')._;
+    _ = require('underscore')._,
+    config = require('konphyg')(__dirname);
+
+var server_config = config('server');
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -13,7 +16,23 @@ var http = require('http'),
 ///////////////////////////////////////////////////////////////////////////////
 
 var frontend_app = express();
+
+frontend_app.configure(function(){
+  var ejs = require('ejs');
+  ejs.open = '<$';
+  ejs.close = '$>';
+  frontend_app.set('views', __dirname + '/views');
+  frontend_app.engine('.html', ejs.__express)
+});
+
+frontend_app.get('/', function(req, resp) {
+    resp.render('index.html', {
+        server_config: server_config
+    });
+});
+
 frontend_app.use(express.static(__dirname + '/static'));
+
 frontend_app.use(function(req, resp) {
     resp.send(404, 'Not found');
 });
@@ -275,7 +294,7 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // Configuration
-frontend_hosts = ['httpi.pe', 'www.httppi.pe', 'local.httpi.pe'];
+frontend_hosts = server_config.frontend_hosts;
 
 // Init main server
 var app = express()
@@ -291,11 +310,12 @@ _.each(frontend_hosts, function(host) {
 
 // request catcher
 var reqcatcher_server = new ReqCatcherServer(frontend_hosts);
-app.use(express.vhost('*.httpi.pe', reqcatcher_server.app));
+app.use(express.vhost(server_config.reqcatcher_host, reqcatcher_server.app));
 
 // httpi.pe app
 httpipeBusinessLogic(reqcatcher_server, socketio_server);
 
 // Listen
-server.listen(8888);
+console.log("Listening on "+server_config.port);
+server.listen(server_config.port);
 

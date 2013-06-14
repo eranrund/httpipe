@@ -1,0 +1,3 @@
+- SSL?
+- X-Forwarded-For headers
+- pretty logging (look at socket.io)
