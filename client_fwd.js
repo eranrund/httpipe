@@ -38,10 +38,10 @@ if (!fwd_dst_host.length) {
     fwd_dst_host = '127.0.0.1';
 }
 
-fwd_dst = fwd_dst_host+':'+fwd_dst_host;
+fwd_dst = fwd_dst_host+':'+fwd_dst_port;
 
 // Log
-console.log(util.format('Forwarding session %s to %s (using %s)', httpipe_sid, fwd_dst, fwd_dst, httpipe_server));
+console.log(util.format('Forwarding session %s to %s (using %s)', httpipe_sid, fwd_dst, httpipe_server));
 
 // Init socket.io
 var socket = io_client.connect(httpipe_server, {
