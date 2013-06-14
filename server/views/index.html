@@ -199,7 +199,7 @@ var HttpipeFrontendApp = (function() {
         var sid = '';
         if (!window.location.hash || window.location.hash.length != (HTTPIPE_SID_LEN+1)) {
             // Generate a new id
-            var charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var charset = 'abcdefghijklmnopqrstuvwxyz0123456789';
             for (var i = 0; i < HTTPIPE_SID_LEN; ++i) {
                 sid += charset.charAt(Math.floor(Math.random() * charset.length));
             }
