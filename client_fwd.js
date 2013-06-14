@@ -1,40 +1,58 @@
+///////////////////////////////////////////////////////////////////////////////
+// httpi.pe - forwarding client
+//
+// forwards requests of specified session id to a given server
+///////////////////////////////////////////////////////////////////////////////
+
 var io_client = require('socket.io-client'),
     http = require('http');
 
-// TODO
-var server_url = 'http://'+process.argv[2]+':8888';
-var sid = process.argv[3];
-console.log('Working with: '+server_url);
-var socket = io_client.connect(server_url, {
+
+// Command line parsing
+var argv = require('optimist')
+    .usage('Usage: $0 [--httpipe-server <httpi.pe server>] <session id> <destination server[:port]>')
+    .demand(2)
+    .describe('httpipe-server', 'httpi.pe server to work with')
+    .default('httpipe-server', 'httpi.pe')
+    .argv;
+
+var httpipe_sid = argv._[0],
+    fwd_dst     = argv._[1],
+    httpipe_server = argv['httpipe-server'];
+
+console.log('Forwarding session '+httpipe_sid+' to '+fwd_dst+' (using '+httpipe_server+')');
+
+// Init socket.io
+var socket = io_client.connect(httpipe_server, {
     resource: '__httpipe_socket.io'
 });
 
 socket.on('connect', function() {
-    console.log('HttpipeFwdClient: connected!');
-    socket.emit('room:join', sid);
-    socket.emit('room:join', sid+':fwd');
+    console.log('Connected to httpi.pe server!');
+    socket.emit('room:join', httpipe_sid);
+    socket.emit('room:join', httpipe_sid+':fwd');
 });
 
 socket.on('disconnect', function() {
-    console.log('HttpipeFwdClient: disconnected :-(');
+    console.log('Disconnected from httpi.pe server :-(');
 });
 
 socket.on('error', function(err) {
-    console.error('HttpipeFwdClient: Error: '+err);
+    console.error('httpi.pe server error: '+err);
 });
 
-// req: id, method, url, headers, data
+// Handle incoming requests
+// (req contains id, method, url, headers, data)
 socket.on('request', function(req) {
     console.log(req.method+' '+req.url+': forwarding...');
 
     // TODO
-    req.headers['host'] = 'httpbin.org';
+    req.headers['host'] = fwd_dst;
 
     // Create client to do this
     var client = http.request({
-        host: 'httpbin.org', // TODO
-        //host: '127.0.0.1',
-        port: 80,
+        host: fwd_dst, // TODO
+        port: 80, // TODO
         path: req.url,
         method: req.method,
         headers: req.headers,
