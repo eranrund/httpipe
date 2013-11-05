@@ -238,7 +238,7 @@ var httpipeBusinessLogic = (function(reqcatcher_server, socketio_server) {
 
         if (req_info.resp) {
             req_info.resp.writeHead(data.status_code, data.headers);
-            req_info.resp.write(data.data);
+            req_info.resp.write(new Buffer(data.data, 'base64'));
             req_info.resp.end();
         }
 

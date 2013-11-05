@@ -77,15 +77,17 @@ socket.on('request', function(req) {
         path: req.url,
         method: req.method,
         headers: req.headers,
+        encoding: null,
         agent: false
     }, function(resp) {
         // Request completed, got response
 
         // Read response data
-        var data = '';
+        var buffers = [];
         resp.on('data', function(chunk) {
-            data += chunk;
+            buffers.push(chunk);
         });
+
 
         // Wait for response to finish
         resp.on('end', function() {
@@ -94,7 +96,7 @@ socket.on('request', function(req) {
                 req_id: req.id,
                 status_code: resp.statusCode,
                 headers: resp.headers,
-                data: data
+                data: Buffer.concat(buffers).toString('base64')
             });
 
             console.log(req.method+' '+req.url+': done ['+resp.statusCode+']');
