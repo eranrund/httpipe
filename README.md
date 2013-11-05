@@ -24,7 +24,7 @@ URL to use so that your requests are captured.
 Using the forwarder
 -------------------
 Okay, so capturing requests is nice and useful - but this isn't the highlight of httpi.pe (and to be honest,
-[requestsb.in](http://requestsb.in/) does this with a much nicer UI).
+[requestb.in](http://requestb.in/) does this with a much nicer UI).
 
 The interesting feature is the option to forward requests to your local web server. In order to do that you would need
 to clone this repository and run ```npm install``` to install required dependencies. You can then start the forwarder
