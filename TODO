@@ -1,3 +1,4 @@
 - SSL?
 - X-Forwarded-For headers
 - pretty logging (look at socket.io)
+- binary data in POST currently breaks (file uploads?)
