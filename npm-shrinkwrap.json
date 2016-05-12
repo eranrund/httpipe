@@ -123,10 +123,6 @@
       "from": "konphyg@",
       "resolved": "https://registry.npmjs.org/konphyg/-/konphyg-1.2.0.tgz"
     },
-    "memwatch": {
-      "version": "0.2.2",
-      "from": "memwatch@"
-    },
     "moment": {
       "version": "2.0.0",
       "from": "moment@",
